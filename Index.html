@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Sincronización Financiera Universal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@tailwindcss/browser@latest"></script>
+    <style>
+        /* Estilos personalizados para el círculo y la disposición */
+        .circle-container {
+            position: relative;
+            width: 300px; /* Ajusta el tamaño según sea necesario */
+            height: 300px;
+            margin: 2rem auto;
+            border-radius: 50%;
+            /* border: 2px solid #ccc; */  /* Solo para visualizar el círculo */
+        }
+        .user-spot {
+            position: absolute;
+            width: 40px; /* Ajusta el tamaño de los puntos de usuario */
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e0e0e0; /* Color de los puntos de usuario */
+            text-align: center;
+            line-height: 40px; /* Centra el número dentro del punto */
+            font-size: 0.7rem; /* Tamaño de la fuente */
+            color: #333;
+        }
+        /* Posiciones fijas para los 9 puntos del círculo */
+        #spot-1 { top: 15px; left: 50%; transform: translateX(-50%); }
+        #spot-2 { top: 50px; right: 30px; }
+        #spot-3 { top: 120px; right: 15px; }
+        #spot-4 { top: 200px; right: 30px; }
+        #spot-5 { bottom: 15px; left: 50%; transform: translateX(-50%); }
+        #spot-6 { bottom: 50px; left: 30px; }
+        #spot-7 { bottom: 120px; left: 15px; }
+        #spot-8 { bottom: 200px; left: 30px; }
+        #spot-9 { top: 120px; left: 50%; transform: translateX(-50%); }
+
+        .info-container {
+            margin-top: 2rem;
+            text-align: center;
+            background-color: #f7fafc;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        #user-list {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            max-height: 150px; /* Altura máxima para la lista */
+            overflow-y: auto; /* Agrega scroll si la lista es muy larga */
+            list-style-type: none;
+            margin-left: auto;
+            margin-right: auto;
+            width: 90%;
+        }
+        #user-list li{
+             border-bottom: 1px solid #e2e8f0;
+             padding: 0.25rem;
+        }
+        #user-list li:last-child{
+             border-bottom: none;
+        }
+
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-semibold text-center text-gray-800 mb-6">Sistema de Sincronización Financiera Universal</h1>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Registro de Usuario</h2>
+            <form id="register-form" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-gray-600 text-sm font-bold mb-2">Nombre de Usuario:</label>
+                    <input type="text" id="username" name="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                    <div id="username-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                </div>
+                <div>
+                    <label for="email" class="block text-gray-600 text-sm font-bold mb-2">Correo Electrónico:</label>
+                    <input type="email" id="email" name="email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                    <div id="email-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                </div>
+                <div>
+                    <label for="password" class="block text-gray-600 text-sm font-bold mb-2">Contraseña:</label>
+                    <input type="password" id="password" name="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                    <div id="password-error" class="text-red-500 text-xs italic" style="display: none;"></div>
+                </div>
+                <button type="submit" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Registrarse</button>
+            </form>
+        </div>
+
+        <div class="circle-container">
+            <div id="spot-1" class="user-spot">1</div>
+            <div id="spot-2" class="user-spot">2</div>
+            <div id="spot-3" class="user-spot">3</div>
+            <div id="spot-4" class="user-spot">4</div>
+            <div id="spot-5" class="user-spot">5</div>
+            <div id="spot-6" class="user-spot">6</div>
+            <div id="spot-7" class="user-spot">7</div>
+            <div id="spot-8" class="user-spot">8</div>
+            <div id="spot-9" class="user-spot">9</div>
+        </div>
+
+        <div class="info-container">
+            <p class="text-gray-700">Usuarios Registrados:</p>
+            <ul id="user-list"></ul>
+            <p id="current-user-info" class="mt-4 text-blue-600 font-medium"></p>
+        </div>
+    </div>
+
+    <script>
+        const users = [];
+        let nextPosition = 1;
+        let currentUser = null;
+        let usuariosActivados = 0; // Contador de usuarios activados
+        const fondosCentrales = { saldo: 0 }; // Cuenta central
+
+        const spotElements = [
+            document.getElementById('spot-1'),
+            document.getElementById('spot-2'),
+            document.getElementById('spot-3'),
+            document.getElementById('spot-4'),
+            document.getElementById('spot-5'),
+            document.getElementById('spot-6'),
+            document.getElementById('spot-7'),
+            document.getElementById('spot-8'),
+            document.getElementById('spot-9')
+        ];
+
+        document.getElementById('register-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            let hasErrors = false;
+
+            // Validación del nombre de usuario
+            if (!username) {
+                formErrorResponse("username-error","El nombre de usuario es requerido");
+                hasErrors = true;
+            } else if (username.length < 3) {
+                formErrorResponse("username-error","El nombre de usuario debe tener al menos 3 caracteres");
+                hasErrors = true;
+            } else {
+                document.getElementById('username-error').style.display = 'none';
+            }
+
+            // Validación del correo electrónico
+            if (!email) {
+                formErrorResponse("email-error","El correo electrónico es requerido");
+                hasErrors = true;
+            } else if (!isValidEmail(email)) {
+                formErrorResponse("email-error","El correo electrónico no es válido");
+                hasErrors = true;
+            } else {
+                document.getElementById('email-error').style.display = 'none';
+            }
+
+            // Validación de la contraseña
+            if (!password) {
+                formErrorResponse("password-error","La contraseña es requerida");
+                hasErrors = true;
+            } else if (password.length < 6) {
+                formErrorResponse("password-error","La contraseña debe tener al menos 6 caracteres");
+                hasErrors = true;
+            } else {
+                document.getElementById('password-error').style.display = 'none';
+            }
+            if (hasErrors) {
+                return;
+            }
+
+            // Crear un nuevo usuario
+            const newUser = {
+                id: users.length + 1,
+                username: username,
+                email: email,
+                password: password, // En una aplicación real, ¡nunca guardes la contraseña en texto plano!
+                saldo: 0, // El saldo inicial es 0, se deposita en la cuenta central
+                posicion: nextPosition,
+                ciclosCompletados: 0,
+                activo: false,
+            };
+
+            users.push(newUser);
+            currentUser = newUser; // Establecer el usuario actual
+
+            // Depositar 100 en la cuenta central
+            fondosCentrales.saldo += 100;
+
+            // Mover a los usuarios existentes
+            moverUsuarios();
+
+            // Actualizar la posición del nuevo usuario
+            nextPosition = 1;
+            newUser.posicion = nextPosition;
+
+            // Incrementar la posición para el próximo usuario
+            nextPosition = (nextPosition === 9) ? 1 : nextPosition + 1;
+
+            // Actualizar la visualización de las posiciones
+            actualizarPosicionesVisuales();
+
+            actualizarListaUsuarios();
+            actualizarInfoUsuarioActual();
+            mostrarMensaje(`Usuario ${newUser.username} registrado con éxito. Su posición es ${newUser.posicion}`);
+        });
+
+        function moverUsuarios() {
+            // Mover a cada usuario a la siguiente posición
+            for (let i = 0; i < users.length; i++) {
+                users[i].posicion = (users[i].posicion === 9) ? 1 : users[i].posicion + 1;
+            }
+        }
+
+        function actualizarPosicionesVisuales() {
+            // Limpiar todos los spots
+            spotElements.forEach(spot => {
+                spot.textContent = '';
+                spot.style.backgroundColor = '#e0e0e0'; // Restablecer el color
+            });
+
+            // Colocar a los usuarios en sus nuevas posiciones
+            users.forEach(user => {
+                spotElements[user.posicion - 1].textContent = user.username;
+                spotElements[user.posicion - 1].style.backgroundColor = '#86ef7d'; // Color verde para el usuario registrado
+            });
+        }
+
+
+        function isValidEmail(email) {
+            // Expresión regular para validar el formato del correo electrónico
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function formErrorResponse(inputID,response){
+             const errorElement = document.getElementById(inputID);
+             errorElement.textContent = response;
+             errorElement.style.display = 'block';
+        }
+
+        function actualizarListaUsuarios() {
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = ''; // Limpiar la lista
+            users.forEach(user => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${user.username} - Saldo: $${user.saldo} - Posición: ${user.posicion} - Ciclos: ${user.ciclosCompletados} - Activo: ${user.activo ? 'Sí' : 'No'}`;
+                userList.appendChild(listItem);
+            });
+        }
+
+        function actualizarInfoUsuarioActual() {
+            const infoContainer = document.getElementById('current-user-info');
+            if (currentUser) {
+                infoContainer.textContent = `Usuario Actual: ${currentUser.username} | Saldo: $${currentUser.saldo} | Posición: ${currentUser.posicion} | Ciclos Completados: ${currentUser.ciclosCompletados} | Activo: ${currentUser.activo ? 'Sí' : 'No'}`;
+            } else {
+                infoContainer.textContent = 'No hay usuario actual registrado.';
+            }
+        }
+
+        function mostrarMensaje(mensaje) {
+            alert(mensaje); // Para simplificar, usamos un alert.  En una app real, usa un modal o un elemento en la página.
+        }
+
+        function activarUsuario9() {
+            const usuario9 = users.find(user => user.posicion === 9);
+            if (usuario9) {
+                usuario9.activo = true;
+                usuario9.ciclosCompletados++;
+                usuario9.movimientos = 0; // Reiniciar movimientos
+
+                // Descontar 40 de la cuenta central y dar al usuario
+                fondosCentrales.saldo -= 40;
+                usuario9.saldo += 40;
+
+                usuariosActivados++; // Incrementar el contador de usuarios activados
+
+                // Dar bono cada 4 activaciones
+                if (usuariosActivados % 4 === 0) {
+                    fondosCentrales.saldo -= 20;
+                    usuario9.saldo += 20;
+                }
+
+                mostrarMensaje(`¡El usuario ${usuario9.username} (Posición 9) ha completado un ciclo y se ha activado!`);
+                actualizarListaUsuarios();
+                actualizarInfoUsuarioActual();
+            }
+        }
+
+        // Simulación de depósitos y retiros (para demostración)
+        function simularTransacciones() {
+            if (users.length > 0) {
+                // Depósito aleatorio para un usuario activo
+                const usuarioDeposito = users.find(user => user.activo);
+                if (usuarioDeposito) {
+                    const cantidadDeposito = Math.floor(Math.random() * 50) + 10; // Entre 10 y 60
+                    usuarioDeposito.saldo += cantidadDeposito;
+                    fondosCentrales.saldo -= cantidadDeposito;
+                    mostrarMensaje(`Depósito de $${cantidadDeposito} a ${usuarioDeposito.username}`);
+                }
+
+                // Retiro aleatorio de un usuario activo
+                const usuarioRetiro = users.find(user => user.activo);
+                if (usuarioRetiro && usuarioRetiro.saldo > 0) {
+                    const cantidadRetiro = Math.floor(Math.random() * 30) + 10; // Entre 10 y 40
+                    if (usuarioRetiro.saldo >= cantidadRetiro) {
+                        usuarioRetiro.saldo -= cantidadRetiro;
+                        fondosCentrales.saldo += cantidadRetiro;
+                        mostrarMensaje(`Retiro de $${cantidadRetiro} de ${usuarioRetiro.username}`);
+                    }
+                }
+                actualizarListaUsuarios();
+                actualizarInfoUsuarioActual();
+            }
+        }
+
+        // Iniciar la simulación de transacciones cada 3 segundos
+        setInterval(simularTransacciones, 3000);
+
+        // Activar al usuario 9 cada 9 movimientos globales
+        setInterval(() => {
+            if (users.length >= 9) {
+                activarUsuario9();
+            }
+        }, 9000);
+    </script>
+</body>
+</html>
